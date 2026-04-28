@@ -59,10 +59,38 @@ python gov_contract_dashboard.py
 
 The dashboard displays:
 - **Configuration** — active env-var settings
-- **Bot state** — seen award count and last-modified time from `state.json`
-- **Recent contracts** — new awards fetched from USASpending.gov
-- **Ticker matches** — fuzzy-matched tickers with market-cap, materiality ratio, and current price
-- **Alpaca positions** — open positions and account summary (skipped if API keys are absent)
+- **Bot state** — `state.json` health (fresh / stale / cold), seen-award count, last-modified time
+- **Summary stats** — total contract value, ticker matches, validated tickers, material-award count and total $ exposure
+- **Top agencies & top recipients** — aggregated rankings by total contract value
+- **Recent contracts** — top awards (sorted by amount) from USASpending.gov
+- **Ticker matches** — fuzzy-matched tickers, market-cap, materiality ratio, current price; sorted with material awards first
+- **Alpaca account** — portfolio value, equity, today's P/L, buying power, daily-trade budget
+- **Open positions** — with current price and unrealized P/L
+- **Recent orders** — last 14 days of activity (skipped if API key absent)
+
+### Options
+
+```text
+--refresh N      Live auto-refresh every N seconds (Ctrl+C to exit)
+--limit N        Max contracts shown in the contracts table (default: 20)
+--top N          Rows in top-agencies / top-recipients tables (default: 5)
+--no-validate    Skip yfinance market-data lookups (much faster)
+--no-orders      Skip the Alpaca recent-orders table
+--export FILE    Write the full snapshot (contracts + analyses + config) to a JSON file
+```
+
+Examples:
+
+```bash
+# Live mode, refresh every 60s
+python gov_contract_dashboard.py --refresh 60
+
+# Fast snapshot, skip market data
+python gov_contract_dashboard.py --no-validate
+
+# Snapshot to JSON for further analysis
+python gov_contract_dashboard.py --export snapshot.json
+```
 
 ## Render Deployment Guide
 
