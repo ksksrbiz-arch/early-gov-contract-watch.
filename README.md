@@ -1,14 +1,18 @@
 # Early Gov Contract Watch & Auto-Trader (Render Edition)
 
 **⚠️ HIGH RISK - EDUCATIONAL ONLY ⚠️**  
-This bot watches for big U.S. government contracts and automatically buys/sells stocks. It can lose money. Start with paper trading.
+This bot watches for big U.S. government contracts and automatically buys/sells stocks. It can lose money. **Always start with paper trading.**
 
 ## What It Does
+
+The bot uses a **two-phase profit engine** backed by the Alpaca Market Data v2 API (snapshots, latest bars, quotes):
+
+- **Phase 1 — Quick Profit**: On every new contract award, pulls a live Alpaca snapshot for the matched ticker. If the stock is showing a *volume spike* (today's volume ≥ 2× yesterday's) **and** a *tight bid/ask spread* (≤ 0.5% of mid-price), opens a small position (`QUICK_BUY_NOTIONAL`, default $300). Auto-closes after 48 hours, +12% gain, or −5% loss — whichever fires first.
+- **Phase 2 — Large Profit**: If Phase 1 does not trigger (no volume spike/spread signal) but the contract is ≥ 0.75% of the awardee's market cap, opens a larger position (`LARGE_BUY_NOTIONAL`, default $2,000) and holds it with a 20% take-profit target and 8% trailing stop over up to 14 days.
 - Checks USASpending.gov every 30 minutes for new contracts > $10M
-- Matches company names to stock tickers using fuzzy matching
-- Buys automatically if the contract is material
-- Sells after 5 days, +12% profit, or -6% loss
+- Matches company names to stock tickers using SEC fuzzy matching
 - Runs 24/7 on Render as a Background Worker
+- Paper trading enabled by default (`ALPACA_PAPER=true`)
 
 ## Quick Start (Render - Recommended)
 
@@ -19,17 +23,43 @@ This bot watches for big U.S. government contracts and automatically buys/sells 
 5. Add the environment variables from `.env.example`
 6. Deploy
 
-## Environment Variables (Required)
+## Environment Variables
+
+### Required
 
 | Variable                | Example          | Description |
 |-------------------------|------------------|-----------|
 | ALPACA_API_KEY          | AK...            | Your Alpaca key |
 | ALPACA_SECRET_KEY       | ...              | Your secret |
-| ALPACA_PAPER            | true             | true = paper, false = real money |
-| BUY_NOTIONAL            | 300              | $ amount per trade (start small) |
-| MIN_CONTRACT_AMOUNT     | 10000000         | Minimum contract size |
-| POLL_INTERVAL_MINUTES   | 30               | How often to check |
-| SLACK_WEBHOOK           | (optional)       | For buy/sell alerts |
+| ALPACA_PAPER            | true             | `true` = paper, `false` = real money |
+| MIN_CONTRACT_AMOUNT     | 10000000         | Minimum contract size to watch |
+| POLL_INTERVAL_MINUTES   | 30               | How often to check USASpending |
+| SLACK_WEBHOOK           | (optional)       | For buy/sell Slack alerts |
+
+### Phase 1 — Quick Profit
+
+| Variable                  | Default | Description |
+|---------------------------|---------|-------------|
+| QUICK_BUY_NOTIONAL        | 300     | $ per Phase-1 trade |
+| QUICK_HOLD_HOURS          | 48      | Max hold time before forced exit |
+| QUICK_TAKE_PROFIT_PCT     | 12      | Take-profit threshold (%) |
+| QUICK_STOP_LOSS_PCT       | 5       | Stop-loss threshold (%) |
+| VOLUME_SPIKE_MULTIPLIER   | 2.0     | Min ratio of today's vs yesterday's volume |
+| MAX_SPREAD_PCT            | 0.005   | Max bid/ask spread as fraction of mid-price |
+
+### Phase 2 — Large Profit
+
+| Variable                      | Default | Description |
+|-------------------------------|---------|-------------|
+| LARGE_BUY_NOTIONAL            | 2000    | $ per Phase-2 trade |
+| PHASE2_MATERIALITY_THRESHOLD  | 0.0075  | Min contract/market-cap ratio (0.75%) |
+| PHASE2_TAKE_PROFIT_PCT        | 20      | Take-profit threshold (%) |
+| TRAILING_STOP_PCT             | 8       | Trailing stop-loss threshold (%) |
+| TRAILING_STOP_DAYS            | 14      | Max hold days before forced exit |
+
+### Flip to Live Trading
+
+Set `ALPACA_PAPER=false` **only after thorough paper-trading validation**.  Start with small notional values and confirm the bot behaves as expected across several cycles before increasing position sizes.
 
 ## Local Testing
 ```bash
@@ -173,6 +203,8 @@ Both the live UI and the `--export` payload conform to a versioned schema:
   "alpaca":    { "configured": ..., "account": ..., "positions": ...,
                  "orders": ..., "lifecycle": {...},
                  "exposure_concentration": {...}, "drawdown_leaders": [...] },
+  "two_phase": { "phase1_candidates": N, "phase2_candidates": N,
+                 "phase2_threshold": 0.0075, "phase2_tickers": [...] },
   "errors":    { ... }
 }
 ```
