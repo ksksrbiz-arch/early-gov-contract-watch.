@@ -110,15 +110,18 @@ def render_config(snapshot: Dict[str, Any]) -> Panel:
     rows = [
         ("Alpaca mode", "[yellow]PAPER[/yellow]" if cfg.get("alpaca_paper") else "[red]LIVE[/red]"),
         ("API key set", "[green]yes[/green]" if cfg.get("alpaca_api_key_set") else "[red]no[/red]"),
-        ("Buy notional", f"${cfg.get('buy_notional', 0):,.0f}"),
+        ("P1 buy notional", f"${cfg.get('buy_notional', 0):,.0f}"),
+        ("P2 buy notional", f"${(cfg.get('phase2') or {}).get('buy_notional', 0):,.0f}"),
         ("Min contract", f"${cfg.get('min_contract_amount', 0):,.0f}"),
         ("Days lookback", str(cfg.get("days_lookback"))),
         ("Poll interval", f"{cfg.get('poll_interval_minutes')} min"),
         ("Max daily trades", str(cfg.get("max_daily_trades"))),
-        ("Take-profit", f"{cfg.get('take_profit_pct')}%"),
-        ("Stop-loss", f"{cfg.get('stop_loss_pct')}%"),
-        ("Sell after", f"{cfg.get('sell_after_days')} days"),
-        ("Materiality", f"{cfg.get('materiality_threshold', 0):.1%}"),
+        ("P1 take-profit / stop", f"{cfg.get('take_profit_pct')}% / {cfg.get('stop_loss_pct')}%"),
+        ("P1 hold hours", f"{(cfg.get('phase1') or {}).get('hold_hours', 48)} h"),
+        ("P2 take-profit / trailing", f"{(cfg.get('phase2') or {}).get('take_profit_pct', 20)}% / {(cfg.get('phase2') or {}).get('trailing_stop_pct', 8)}%"),
+        ("P2 trailing days", f"{(cfg.get('phase2') or {}).get('trailing_stop_days', 14)} days"),
+        ("Materiality (P1)", f"{cfg.get('materiality_threshold', 0):.1%}"),
+        ("Materiality (P2)", f"{(cfg.get('phase2') or {}).get('materiality_threshold', 0):.1%}"),
     ]
     for label, value in rows:
         grid.add_row(label, value)
@@ -714,8 +717,53 @@ def render_alpaca(snapshot: Dict[str, Any], *, show_orders: bool = True) -> Grou
 
 
 # ---------------------------------------------------------------------------
-# Top-level renderer
+# Two-phase engine panel
 # ---------------------------------------------------------------------------
+
+def render_two_phase(snapshot: Dict[str, Any]) -> Group:
+    """Render Phase 1 / Phase 2 configuration and live candidacy summary."""
+    cfg = snapshot.get("config") or {}
+    p1 = cfg.get("phase1") or {}
+    p2 = cfg.get("phase2") or {}
+    tp = snapshot.get("two_phase") or {}
+
+    # ── Phase 1 config ───────────────────────────────────────────────────────
+    p1_grid = Table.grid(padding=(0, 2))
+    p1_grid.add_column(style="bold cyan", no_wrap=True)
+    p1_grid.add_column()
+    p1_grid.add_row("Buy notional",    f"${p1.get('buy_notional', 0):,.0f}")
+    p1_grid.add_row("Hold hours",      f"{p1.get('hold_hours', 48)} h")
+    p1_grid.add_row("Take profit",     f"{p1.get('take_profit_pct', 12)}%")
+    p1_grid.add_row("Stop loss",       f"{p1.get('stop_loss_pct', 5)}%")
+    p1_grid.add_row("Volume spike ×",  f"{p1.get('volume_spike_multiplier', 2.0):.1f}×")
+    p1_grid.add_row("Max spread",      f"{p1.get('max_spread_pct', 0.005):.2%}")
+    p1_grid.add_row(
+        "Candidates",
+        f"[bold]{tp.get('phase1_candidates', 0)}[/bold] material award(s) in window",
+    )
+    p1_panel = Panel(p1_grid, title="[bold green]Phase 1 — Quick Profit[/bold green]", border_style="green")
+
+    # ── Phase 2 config ───────────────────────────────────────────────────────
+    p2_grid = Table.grid(padding=(0, 2))
+    p2_grid.add_column(style="bold cyan", no_wrap=True)
+    p2_grid.add_column()
+    p2_grid.add_row("Buy notional",     f"${p2.get('buy_notional', 0):,.0f}")
+    p2_grid.add_row("Materiality ≥",    f"{p2.get('materiality_threshold', 0.0075):.2%}")
+    p2_grid.add_row("Take profit",      f"{p2.get('take_profit_pct', 20)}%")
+    p2_grid.add_row("Trailing stop",    f"{p2.get('trailing_stop_pct', 8)}%")
+    p2_grid.add_row("Max hold",         f"{p2.get('trailing_stop_days', 14)} days")
+    p2_tickers = tp.get("phase2_tickers") or []
+    ticker_str = ", ".join(p2_tickers[:10]) if p2_tickers else "[dim]none[/dim]"
+    p2_grid.add_row(
+        "Candidates",
+        f"[bold]{tp.get('phase2_candidates', 0)}[/bold] award(s) — {ticker_str}",
+    )
+    p2_panel = Panel(p2_grid, title="[bold blue]Phase 2 — Large Profit[/bold blue]", border_style="blue")
+
+    return Group(
+        Rule("[bold]Two-Phase Profit Engine[/bold]", style="white"),
+        Columns([p1_panel, p2_panel], equal=True, expand=True),
+    )
 
 def render_dashboard(
     snapshot: Dict[str, Any],
@@ -782,6 +830,7 @@ def render_dashboard(
 
     if view in (VIEW_ALL, VIEW_TRADING):
         blocks.append(Rule(style="dim"))
+        blocks.append(_safe(render_two_phase, snapshot))
         blocks.append(_safe(render_alpaca, snapshot, show_orders=show_orders))
 
     return Group(*blocks)

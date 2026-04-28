@@ -84,10 +84,20 @@ def validate_config(config_view: Dict[str, Any]) -> Tuple[List[str], List[str]]:
 
     buy_notional = float(config_view.get("buy_notional") or 0)
     if buy_notional <= 0:
-        issues.append("BUY_NOTIONAL must be > 0")
+        issues.append("BUY_NOTIONAL / QUICK_BUY_NOTIONAL must be > 0")
     elif buy_notional > 10_000:
         warnings.append(
-            f"BUY_NOTIONAL is unusually large (${buy_notional:,.0f}) — "
+            f"QUICK_BUY_NOTIONAL is unusually large (${buy_notional:,.0f}) — "
+            "double-check before live trading"
+        )
+
+    p2 = config_view.get("phase2") or {}
+    large_notional = float(p2.get("buy_notional") or 0)
+    if large_notional <= 0:
+        issues.append("LARGE_BUY_NOTIONAL must be > 0")
+    elif large_notional > 50_000:
+        warnings.append(
+            f"LARGE_BUY_NOTIONAL is unusually large (${large_notional:,.0f}) — "
             "double-check before live trading"
         )
 
@@ -103,6 +113,12 @@ def validate_config(config_view: Dict[str, Any]) -> Tuple[List[str], List[str]]:
     if materiality <= 0 or materiality > 1:
         issues.append(
             "MATERIALITY_THRESHOLD must be between 0 and 1 (e.g. 0.005 for 0.5%)"
+        )
+
+    p2_mat = float(p2.get("materiality_threshold") or 0)
+    if p2_mat > 0 and p2_mat <= materiality:
+        warnings.append(
+            "PHASE2_MATERIALITY_THRESHOLD should be higher than MATERIALITY_THRESHOLD"
         )
 
     days_lookback = int(config_view.get("days_lookback") or 0)

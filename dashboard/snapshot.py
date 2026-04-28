@@ -158,29 +158,57 @@ def _config_view() -> Dict[str, Any]:
         ALPACA_PAPER,
         BUY_NOTIONAL,
         DAYS_LOOKBACK,
+        LARGE_BUY_NOTIONAL,
         MATERIALITY_THRESHOLD,
         MAX_DAILY_TRADES,
         MIN_CONTRACT_AMOUNT,
+        PHASE2_MATERIALITY_THRESHOLD,
+        PHASE2_TAKE_PROFIT_PCT,
         POLL_INTERVAL_MINUTES,
+        QUICK_HOLD_HOURS,
+        QUICK_STOP_LOSS_PCT,
+        QUICK_TAKE_PROFIT_PCT,
         SELL_AFTER_DAYS,
         STATE_FILE,
         STOP_LOSS_PCT,
         TAKE_PROFIT_PCT,
+        TRAILING_STOP_DAYS,
+        TRAILING_STOP_PCT,
+        VOLUME_SPIKE_MULTIPLIER,
+        MAX_SPREAD_PCT,
     )
 
     return {
         "alpaca_api_key_set": bool(ALPACA_API_KEY),
         "alpaca_paper": bool(ALPACA_PAPER),
+        # Backward-compat key (= QUICK_BUY_NOTIONAL)
         "buy_notional": float(BUY_NOTIONAL),
         "min_contract_amount": float(MIN_CONTRACT_AMOUNT),
         "days_lookback": int(DAYS_LOOKBACK),
         "poll_interval_minutes": int(POLL_INTERVAL_MINUTES),
         "max_daily_trades": int(MAX_DAILY_TRADES),
+        # Backward-compat exit keys
         "take_profit_pct": float(TAKE_PROFIT_PCT),
         "stop_loss_pct": float(STOP_LOSS_PCT),
         "sell_after_days": int(SELL_AFTER_DAYS),
         "materiality_threshold": float(MATERIALITY_THRESHOLD),
         "state_file": STATE_FILE,
+        # ── Two-phase engine ──────────────────────────────────────────────
+        "phase1": {
+            "buy_notional": float(BUY_NOTIONAL),
+            "hold_hours": int(QUICK_HOLD_HOURS),
+            "take_profit_pct": float(QUICK_TAKE_PROFIT_PCT),
+            "stop_loss_pct": float(QUICK_STOP_LOSS_PCT),
+            "volume_spike_multiplier": float(VOLUME_SPIKE_MULTIPLIER),
+            "max_spread_pct": float(MAX_SPREAD_PCT),
+        },
+        "phase2": {
+            "buy_notional": float(LARGE_BUY_NOTIONAL),
+            "materiality_threshold": float(PHASE2_MATERIALITY_THRESHOLD),
+            "take_profit_pct": float(PHASE2_TAKE_PROFIT_PCT),
+            "trailing_stop_pct": float(TRAILING_STOP_PCT),
+            "trailing_stop_days": int(TRAILING_STOP_DAYS),
+        },
     }
 
 
@@ -640,6 +668,23 @@ def build_snapshot(
         ),
     }
 
+    # Two-phase eligibility summary (based on materiality; volume data is
+    # only available in the live main.py loop, not in the dashboard snapshot).
+    p2_threshold = float(
+        (config_view.get("phase2") or {}).get("materiality_threshold", 0.0075)
+    )
+    phase2_eligible = [
+        a for a in analyses
+        if a.get("info") and a["info"].get("market_cap")
+        and float(a.get("amount") or 0) / float(a["info"]["market_cap"]) >= p2_threshold
+    ]
+    two_phase_summary: Dict[str, Any] = {
+        "phase1_candidates": len(material),
+        "phase2_candidates": len(phase2_eligible),
+        "phase2_threshold": p2_threshold,
+        "phase2_tickers": [a["ticker"] for a in phase2_eligible if a.get("ticker")],
+    }
+
     # 5. Health checks (after we know fetch outcomes).
     health_block = {
         "config": health.config_health(cfg_issues, cfg_warnings).to_dict(),
@@ -670,6 +715,7 @@ def build_snapshot(
         },
         "analyses": analyses,
         "alpaca": alpaca_section,
+        "two_phase": two_phase_summary,
         "errors": errors,
         "toggles": toggles,
     }
