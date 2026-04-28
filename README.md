@@ -46,7 +46,23 @@ python main.py
 - `ticker_lookup.py` — SEC fuzzy matching
 - `trader.py` — Alpaca buy/sell
 - `usaspending_fetcher.py` — Government API calls
+- `gov_contract_dashboard.py` — Terminal dashboard (see below)
 - `Dockerfile` — For Render deployment
+
+## Dashboard
+
+Run a one-shot terminal snapshot of the bot's state:
+
+```bash
+python gov_contract_dashboard.py
+```
+
+The dashboard displays:
+- **Configuration** — active env-var settings
+- **Bot state** — seen award count and last-modified time from `state.json`
+- **Recent contracts** — new awards fetched from USASpending.gov
+- **Ticker matches** — fuzzy-matched tickers with market-cap, materiality ratio, and current price
+- **Alpaca positions** — open positions and account summary (skipped if API keys are absent)
 
 ## Render Deployment Guide
 
