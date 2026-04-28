@@ -88,11 +88,29 @@ def _isolated_state(tmp_path, monkeypatch):
 def patched_dashboard(monkeypatch):
     """
     Patch the dashboard package to use deterministic upstream stand-ins:
+      - _config_view returns a fixed config dict (no .env dependency)
       - SEC ticker source returns SAMPLE_COMPANIES
       - yfinance lookup returns a deterministic shape per known ticker
       - is_material_award uses the project's threshold (0.005) by default
     """
     from dashboard import snapshot as snap_mod
+
+    # Deterministic config — no .env / config.py dependency needed.
+    FAKE_CONFIG = {
+        "alpaca_api_key_set": False,
+        "alpaca_paper": True,
+        "buy_notional": 300.0,
+        "min_contract_amount": 10_000_000.0,
+        "days_lookback": 7,
+        "poll_interval_minutes": 30,
+        "max_daily_trades": 2,
+        "take_profit_pct": 12.0,
+        "stop_loss_pct": 6.0,
+        "sell_after_days": 5,
+        "materiality_threshold": 0.005,
+        "state_file": "state.json",
+    }
+    monkeypatch.setattr(snap_mod, "_config_view", lambda: dict(FAKE_CONFIG))
 
     monkeypatch.setattr(
         snap_mod, "_load_companies", lambda: list(SAMPLE_COMPANIES)
