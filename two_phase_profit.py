@@ -198,11 +198,6 @@ def evaluate_phase(
         Latest bid and ask from the Alpaca snapshot quote.  ``None`` means
         the spread check is skipped; tight_spread defaults to ``False``.
     """
-    _none = PhaseDecision(
-        phase=PHASE_NONE, ticker=ticker, notional=0.0,
-        reason="", volume_spike=False, tight_spread=False, materiality_ratio=0.0,
-    )
-
     if not ticker:
         return PhaseDecision(
             phase=PHASE_NONE, ticker=None, notional=0.0, reason="no ticker match"

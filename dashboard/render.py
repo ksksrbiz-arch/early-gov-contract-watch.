@@ -761,7 +761,7 @@ def render_two_phase(snapshot: Dict[str, Any]) -> Group:
     p2_panel = Panel(p2_grid, title="[bold blue]Phase 2 — Large Profit[/bold blue]", border_style="blue")
 
     return Group(
-        Rule("[bold]Two-Phase Profit Engine[/bold]", style="green"),
+        Rule("[bold]Two-Phase Profit Engine[/bold]", style="white"),
         Columns([p1_panel, p2_panel], equal=True, expand=True),
     )
 

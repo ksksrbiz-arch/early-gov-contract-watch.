@@ -173,7 +173,7 @@ def test_phase_none_when_below_phase2_threshold_and_no_spike():
     assert "no phase trigger" in d.reason
 
 
-def test_phase_materiality_ratio_reported():
+def test_phase_checks_materiality_before_held():
     d = evaluate_phase(**_phase_kwargs())
     assert d.materiality_ratio == pytest.approx(0.01, rel=1e-3)
 
