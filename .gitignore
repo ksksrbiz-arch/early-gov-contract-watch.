@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.env
+state.json
+*.log
+sec_tickers_cache.json
+venv/
