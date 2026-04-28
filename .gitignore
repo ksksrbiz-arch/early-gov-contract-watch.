@@ -4,4 +4,6 @@ __pycache__/
 state.json
 *.log
 sec_tickers_cache.json
+dashboard_history.json
 venv/
+.pytest_cache/
