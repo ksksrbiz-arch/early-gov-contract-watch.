@@ -50,7 +50,7 @@ def fetch_recent_large_contracts():
             ],
         },
         "fields": AWARD_FIELDS,
-        "sort": "last_modified_date",
+        "sort": "Action Date",
         "order": "desc",
         "limit": 500,
         "page": 1,
