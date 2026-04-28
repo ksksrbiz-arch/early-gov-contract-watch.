@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
@@ -52,4 +53,34 @@ class AlpacaTrader:
             return True
         except Exception as e:
             logger.error(f"Buy failed for {symbol}: {e}")
+            return False
+
+    def sell_stock(self, symbol: str, qty: Optional[int] = None) -> bool:
+        """Liquidate an open position in *symbol*.
+
+        Parameters
+        ----------
+        symbol:
+            Equity ticker to sell.
+        qty:
+            Number of shares to sell.  When ``None`` (default) the entire
+            position is closed via the Alpaca close-position endpoint.
+        """
+        try:
+            if qty is None:
+                self.client.close_position(symbol)
+            else:
+                self.client.submit_order(
+                    MarketOrderRequest(
+                        symbol=symbol,
+                        qty=qty,
+                        side=OrderSide.SELL,
+                        time_in_force=TimeInForce.DAY,
+                    )
+                )
+            label = f"qty={qty}" if qty is not None else "full position"
+            logger.info(f"Sold {symbol} ({label})")
+            return True
+        except Exception as e:
+            logger.error(f"Sell failed for {symbol}: {e}")
             return False
