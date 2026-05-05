@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Overview · Gov Contract Watch{% endblock %}
+{% block heading %}Overview{% endblock %}
+{% block content %}
+<div class="grid">
+  <div class="card" id="card-health">
+    <h2>Section Health</h2>
+    <div class="health-grid" id="health-grid">Loading…</div>
+  </div>
+
+  <div class="card" id="card-summary">
+    <h2>Summary</h2>
+    <div class="kpi-row" id="summary-kpis">Loading…</div>
+  </div>
+
+  <div class="card" id="card-twophase">
+    <h2>Two-Phase Pipeline</h2>
+    <div class="kpi-row" id="twophase-kpis">Loading…</div>
+  </div>
+
+  <div class="card span-2" id="card-account">
+    <h2>Alpaca Account</h2>
+    <div class="kpi-row" id="alpaca-kpis">Loading…</div>
+  </div>
+
+  <div class="card span-2" id="card-positions">
+    <h2>Open Positions</h2>
+    <div class="table-wrap">
+      <table id="positions-table">
+        <thead><tr>
+          <th>Symbol</th><th>Qty</th><th>Avg Entry</th><th>Current</th>
+          <th>Market Value</th><th>Unrealized P/L</th><th>%</th><th></th>
+        </tr></thead>
+        <tbody><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card span-2" id="card-anomalies">
+    <h2>Anomalies & Warnings</h2>
+    <ul id="anomalies-list"><li class="muted">Loading…</li></ul>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>Dashboard.initOverview();</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Trading · Gov Contract Watch{% endblock %}
+{% block heading %}Trading{% endblock %}
+{% block content %}
+<div class="grid">
+  <div class="card span-2">
+    <h2>Account</h2>
+    <div class="kpi-row" id="alpaca-kpis">Loading…</div>
+  </div>
+
+  <div class="card span-2">
+    <h2>Open Positions</h2>
+    <div class="table-wrap">
+      <table id="positions-table">
+        <thead><tr>
+          <th>Symbol</th><th class="num">Qty</th><th class="num">Avg Entry</th>
+          <th class="num">Current</th><th class="num">Market Value</th>
+          <th class="num">Unrealized P/L</th><th class="num">%</th><th></th>
+        </tr></thead>
+        <tbody><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Order Lifecycle (14d)</h2>
+    <div class="kpi-row" id="lifecycle-kpis">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h2>Drawdown Leaders</h2>
+    <div class="table-wrap">
+      <table id="drawdown-table">
+        <thead><tr><th>Symbol</th><th class="num">Unrealized P/L</th><th class="num">%</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card span-2">
+    <h2>Recent Orders</h2>
+    <div class="table-wrap">
+      <table id="orders-table">
+        <thead><tr>
+          <th>Submitted</th><th>Symbol</th><th>Side</th><th>Status</th>
+          <th class="num">Notional</th><th class="num">Filled $</th>
+        </tr></thead>
+        <tbody><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>Dashboard.initTrading();</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Contracts · Gov Contract Watch{% endblock %}
+{% block heading %}Contracts{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="filters">
+    <input id="filter-recipient" placeholder="Filter by recipient">
+    <input id="filter-agency" placeholder="Filter by agency">
+    <input id="filter-min-amount" type="number" placeholder="Min award $">
+    <select id="filter-sort">
+      <option value="amount">Sort: Amount</option>
+      <option value="date">Sort: Date</option>
+      <option value="recipient">Sort: Recipient</option>
+      <option value="agency">Sort: Agency</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table id="contracts-table">
+      <thead><tr>
+        <th>Date</th><th>Recipient</th><th>Agency</th>
+        <th class="num">Amount</th><th>Description</th>
+      </tr></thead>
+      <tbody><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>Dashboard.initContracts();</script>
+{% endblock %}
