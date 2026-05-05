@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Tickers · Gov Contract Watch{% endblock %}
+{% block heading %}Ticker Matches & Materiality{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="filters">
+    <select id="filter-tier">
+      <option value="">All tiers</option>
+      <option value="high">High only</option>
+      <option value="medium">Medium+</option>
+      <option value="low">Low+</option>
+    </select>
+    <label class="check">
+      <input type="checkbox" id="filter-material"> Material only
+    </label>
+    <select id="filter-sort">
+      <option value="materiality">Sort: Materiality</option>
+      <option value="amount">Sort: Amount</option>
+      <option value="confidence">Sort: Confidence</option>
+      <option value="recipient">Sort: Recipient</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table id="tickers-table">
+      <thead><tr>
+        <th>Recipient</th><th>Ticker</th><th>Tier</th><th>Score</th>
+        <th class="num">Amount</th><th class="num">Market Cap</th>
+        <th class="num">Materiality</th><th>Eligibility</th>
+      </tr></thead>
+      <tbody><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>Dashboard.initTickers();</script>
+{% endblock %}

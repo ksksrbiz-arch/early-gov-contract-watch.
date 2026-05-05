@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Control · Gov Contract Watch{% endblock %}
+{% block heading %}Bot Control{% endblock %}
+{% block content %}
+<div class="grid">
+  <div class="card">
+    <h2>Status</h2>
+    <div class="kpi-row" id="control-kpis">Loading…</div>
+    <div class="actions wide">
+      <button id="ctrl-start" class="primary">Start bot</button>
+      <button id="ctrl-stop"  class="danger">Stop bot</button>
+      <button id="ctrl-tick"  class="secondary">Run one cycle now</button>
+    </div>
+    <p class="muted small">
+      Start runs the poll → award processing → exit-scan loop in the
+      background. Stop signals a clean shutdown between iterations.
+      "Run one cycle now" executes a single iteration synchronously —
+      useful to verify your config before going live.
+    </p>
+  </div>
+
+  <div class="card span-2">
+    <div class="row between">
+      <h2>Live Logs</h2>
+      <div>
+        <label class="check small">
+          <input type="checkbox" id="logs-autoscroll" checked> Autoscroll
+        </label>
+        <button id="logs-clear" class="secondary small">Clear</button>
+      </div>
+    </div>
+    <pre id="log-tail" class="logs">Waiting for log entries…</pre>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>Dashboard.initControl();</script>
+{% endblock %}

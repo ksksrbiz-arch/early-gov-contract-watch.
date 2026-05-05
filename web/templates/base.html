@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Gov Contract Watch{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body data-view="{{ view }}">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">EGCW</div>
+      <div class="brand-title">Early Gov Contract Watch</div>
+      <div class="brand-sub">Operator Dashboard</div>
+    </div>
+    <nav>
+      <a href="{{ url_for('page_overview') }}"  class="{{ 'active' if view == 'overview'  else '' }}">Overview</a>
+      <a href="{{ url_for('page_contracts') }}" class="{{ 'active' if view == 'contracts' else '' }}">Contracts</a>
+      <a href="{{ url_for('page_tickers') }}"   class="{{ 'active' if view == 'tickers'   else '' }}">Tickers</a>
+      <a href="{{ url_for('page_trading') }}"   class="{{ 'active' if view == 'trading'   else '' }}">Trading</a>
+      <a href="{{ url_for('page_control') }}"   class="{{ 'active' if view == 'control'   else '' }}">Control</a>
+      <a href="{{ url_for('page_config') }}"    class="{{ 'active' if view == 'config'    else '' }}">Config</a>
+    </nav>
+    <div class="bot-status" id="bot-status-card">
+      <div class="row">
+        <span class="dot" id="bot-status-dot"></span>
+        <span class="label">Bot</span>
+        <span class="value" id="bot-status-text">…</span>
+      </div>
+      <div class="row small">
+        <span>Ticks</span><span id="bot-status-ticks">0</span>
+      </div>
+      <div class="row small">
+        <span>Last tick</span><span id="bot-status-last">—</span>
+      </div>
+      <div class="actions">
+        <button id="bot-start-btn" class="primary">Start</button>
+        <button id="bot-stop-btn"  class="danger">Stop</button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <h1>{% block heading %}Dashboard{% endblock %}</h1>
+      <div class="topbar-actions">
+        <span class="muted" id="last-refresh">—</span>
+        <button id="refresh-btn">Refresh</button>
+      </div>
+    </header>
+
+    <section class="content">
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

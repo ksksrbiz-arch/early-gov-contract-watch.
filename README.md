@@ -14,12 +14,52 @@ The bot uses a **two-phase profit engine** backed by the Alpaca Market Data v2 A
 - Runs 24/7 on Render as a Background Worker
 - Paper trading enabled by default (`ALPACA_PAPER=true`)
 
-## Quick Start (Render - Recommended)
+## Web Dashboard (primary control surface)
+
+The platform ships with a full browser-based dashboard that replaces the
+command line entirely. One URL gives you:
+
+| Page | What you see / can do |
+|---|---|
+| **Overview** | Section health, summary KPIs, open positions, anomalies |
+| **Contracts** | Filterable/sortable table of recent USASpending awards |
+| **Tickers** | Ticker matches, confidence tier, materiality ratio, eligibility |
+| **Trading** | Alpaca account, positions with one-click **Sell**, orders, lifecycle |
+| **Control** | **Start / Stop** the bot loop, **Run one cycle now**, live log tail |
+| **Config** | Edit every env-var in the browser and save to `.env` instantly |
+
+### Run locally
+
+```bash
+cp .env.example .env
+# Edit .env with your Alpaca keys
+python web_app.py
+# Open http://localhost:8000
+```
+
+Set `BOT_AUTOSTART=true` in `.env` to have the bot start automatically when
+the dashboard launches.
+
+### Run on Render (Web Service)
+
+1. Fork or clone this repo
+2. Go to render.com → **New → Web Service**
+3. Connect your GitHub repo
+4. Set **Environment** = Docker
+5. Add the environment variables from `.env.example`
+6. Set `PORT=8000` (Render injects this automatically)
+7. Set `BOT_AUTOSTART=true` if you want the trading loop to start with the server
+8. Click **Deploy** — visit the provided URL to open the dashboard
+
+> To run the bot headlessly (no web UI), change the Docker CMD back to
+> `["python", "main.py"]` or deploy as a Background Worker.
+
+## Quick Start (Render - Headless Background Worker)
 
 1. Fork or clone this repo
 2. Go to [render.com](https://render.com) → New → Background Worker
 3. Connect this GitHub repo
-4. Set Environment = Docker
+4. Set Environment = Docker, override CMD to `python main.py`
 5. Add the environment variables from `.env.example`
 6. Deploy
 
@@ -72,13 +112,20 @@ python main.py
 ```
 
 ## Files
-- `main.py` — Main loop + buy/sell logic
+- `web_app.py` — Entry point for the web dashboard (default Docker CMD)
+- `web/` — Flask web app, bot controller, config editor
+  - `web/app.py` — Routes (pages + JSON API)
+  - `web/bot_controller.py` — Thread-safe start/stop/status/log-tail
+  - `web/config_io.py` — .env read/write helpers
+  - `web/templates/` — Jinja2 HTML templates
+  - `web/static/` — CSS + vanilla JS (no build step)
+- `main.py` — Headless bot loop (still works standalone)
 - `ticker_lookup.py` — SEC fuzzy matching
 - `trader.py` — Alpaca buy/sell
 - `usaspending_fetcher.py` — Government API calls
-- `gov_contract_dashboard.py` — Terminal dashboard CLI shim (see below)
+- `gov_contract_dashboard.py` — Terminal dashboard CLI shim
 - `dashboard/` — Dashboard v2 package (snapshot data layer + renderers + CLI)
-- `tests/` — Hermetic pytest suite for the dashboard
+- `tests/` — Hermetic pytest suite (98 tests)
 - `Dockerfile` — For Render deployment
 
 ## Dashboard (v2)

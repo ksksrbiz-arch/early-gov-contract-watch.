@@ -30,8 +30,6 @@ from rich.live import Live
 from . import config_v2, snapshot
 from .render import render_dashboard
 
-logging.disable(logging.CRITICAL)
-
 console = Console()
 
 
@@ -199,6 +197,8 @@ def _maybe_export(args: argparse.Namespace, snap: Dict[str, Any]) -> None:
 def run_dashboard(argv: Optional[List[str]] = None) -> None:
     args = _parse_args(argv)
     filters = _filters_from_args(args)
+    # Suppress noisy logging only while the interactive dashboard is running.
+    logging.disable(logging.CRITICAL)
 
     if args.refresh:
         try:
