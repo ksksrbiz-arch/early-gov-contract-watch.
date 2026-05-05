@@ -1,0 +1,102 @@
+# Render Blueprint — one-click deploy of the dashboard + bot loop.
+#
+# Usage:
+#   1. Push this repo to GitHub.
+#   2. In Render: New → Blueprint → connect this repo.
+#   3. Render reads this file and provisions the service below.
+#   4. Set the marked-secret env vars in the Render UI (sync: false).
+#   5. Hit Deploy. Open the .onrender.com URL → Control → Start bot.
+#
+# To put Cloudflare in front, see DEPLOYMENT.md.
+
+services:
+  - type: web
+    name: gov-contract-watch
+    runtime: docker
+    plan: starter            # bot needs an always-on worker, not free tier
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      # Render injects PORT automatically; we just declare it.
+      - key: PORT
+        value: 8000
+      - key: TRUST_PROXY
+        value: "true"
+
+      # Auto-start the bot loop when the service boots. Set to "false" if
+      # you want to start it manually from the Control page.
+      - key: BOT_AUTOSTART
+        value: "true"
+
+      # Defense-in-depth before Cloudflare Access is configured. Leave blank
+      # to disable the gate (only safe if Access or another auth is in front).
+      - key: DASHBOARD_TOKEN
+        sync: false
+
+      # Alpaca credentials — set these in the Render UI.
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_SECRET_KEY
+        sync: false
+      - key: ALPACA_PAPER
+        value: "true"
+
+      # Trading parameters.
+      - key: MIN_CONTRACT_AMOUNT
+        value: "10000000"
+      - key: POLL_INTERVAL_MINUTES
+        value: "30"
+      - key: MAX_DAILY_TRADES
+        value: "2"
+      - key: DAYS_LOOKBACK
+        value: "7"
+      - key: MATERIALITY_THRESHOLD
+        value: "0.005"
+      - key: LOG_LEVEL
+        value: "INFO"
+
+      # Persist the bot's state + dashboard history on the mounted disk so
+      # they survive deploys and restarts.
+      - key: STATE_FILE
+        value: /app/data/state.json
+      - key: DASHBOARD_HISTORY_FILE
+        value: /app/data/dashboard_history.json
+      - key: DASHBOARD_DOTENV_PATH
+        value: /app/data/.env
+
+      # Phase 1 — Quick Profit
+      - key: QUICK_BUY_NOTIONAL
+        value: "300"
+      - key: QUICK_HOLD_HOURS
+        value: "48"
+      - key: QUICK_TAKE_PROFIT_PCT
+        value: "12"
+      - key: QUICK_STOP_LOSS_PCT
+        value: "5"
+      - key: VOLUME_SPIKE_MULTIPLIER
+        value: "2.0"
+      - key: MAX_SPREAD_PCT
+        value: "0.005"
+
+      # Phase 2 — Large Profit
+      - key: LARGE_BUY_NOTIONAL
+        value: "2000"
+      - key: PHASE2_MATERIALITY_THRESHOLD
+        value: "0.0075"
+      - key: PHASE2_TAKE_PROFIT_PCT
+        value: "20"
+      - key: TRAILING_STOP_PCT
+        value: "8"
+      - key: TRAILING_STOP_DAYS
+        value: "14"
+
+      # Optional Slack alerts
+      - key: SLACK_WEBHOOK
+        sync: false
+
+    # Render persistent disk so state.json + dashboard_history.json survive
+    # restarts. The bot's `seen_award_ids` lives here too.
+    disk:
+      name: gov-contract-state
+      mountPath: /app/data
+      sizeGB: 1

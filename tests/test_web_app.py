@@ -71,6 +71,8 @@ def client(tmp_path):
         controller=ctl,
         snapshot_builder=_fake_snapshot,
         dotenv_path=str(tmp_path / ".env"),
+        auth_token="",          # gate disabled by default for existing tests
+        trust_proxy=False,      # don't apply ProxyFix in unit tests
     )
     app.testing = True
     with app.test_client() as c:
@@ -233,3 +235,180 @@ def test_404_html_redirects_home(client):
     r = c.get("/no-such-page")
     assert r.status_code == 302
     assert r.headers["Location"].endswith("/")
+
+
+# ── DASHBOARD_TOKEN auth gate ─────────────────────────────────────────────
+
+
+@pytest.fixture
+def gated_client(tmp_path):
+    """Client with DASHBOARD_TOKEN auth gate enabled."""
+    ctl = BotController(
+        run_once=lambda _t: {"awards_processed": 1},
+        trader_factory=lambda: object(),
+        poll_interval_seconds=0,
+    )
+    app = create_app(
+        controller=ctl,
+        snapshot_builder=_fake_snapshot,
+        dotenv_path=str(tmp_path / ".env"),
+        auth_token="s3cret-token-xyz",
+        trust_proxy=False,
+    )
+    app.testing = True
+    with app.test_client() as c:
+        yield c
+
+
+def test_gate_health_endpoint_is_public(gated_client):
+    r = gated_client.get("/api/health")
+    assert r.status_code == 200
+
+
+def test_gate_login_page_is_public(gated_client):
+    r = gated_client.get("/login")
+    assert r.status_code == 200
+    assert b"Dashboard sign-in" in r.data
+
+
+def test_gate_static_assets_are_public(gated_client):
+    # Even though there's no real file, the gate must not 401 the static prefix.
+    r = gated_client.get("/static/dashboard.css")
+    assert r.status_code in (200, 404)
+    # Specifically: we did NOT get a 401 from the gate.
+    assert r.status_code != 401
+
+
+def test_gate_api_returns_401_without_token(gated_client):
+    r = gated_client.get("/api/snapshot")
+    assert r.status_code == 401
+    assert r.get_json()["ok"] is False
+
+
+def test_gate_api_accepts_header_token(gated_client):
+    r = gated_client.get(
+        "/api/snapshot",
+        headers={"X-Dashboard-Token": "s3cret-token-xyz"},
+    )
+    assert r.status_code == 200
+
+
+def test_gate_api_rejects_wrong_header_token(gated_client):
+    r = gated_client.get(
+        "/api/bot/status",
+        headers={"X-Dashboard-Token": "wrong"},
+    )
+    assert r.status_code == 401
+
+
+def test_gate_html_page_redirects_to_login(gated_client):
+    r = gated_client.get("/contracts")
+    assert r.status_code == 302
+    loc = r.headers["Location"]
+    assert "/login" in loc
+    # next= may be URL-encoded ("%2F") or not depending on werkzeug version.
+    assert "next=/contracts" in loc or "next=%2Fcontracts" in loc
+
+
+def test_gate_login_post_sets_cookie_and_redirects(gated_client):
+    r = gated_client.post(
+        "/login",
+        data={"token": "s3cret-token-xyz", "next": "/trading"},
+    )
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith("/trading")
+    set_cookie = r.headers.get("Set-Cookie", "")
+    assert "dashboard_auth=s3cret-token-xyz" in set_cookie
+    assert "HttpOnly" in set_cookie
+
+
+def test_gate_login_post_rejects_bad_token(gated_client):
+    r = gated_client.post("/login", data={"token": "nope"})
+    assert r.status_code == 401
+
+
+def test_gate_login_post_normalizes_open_redirect(gated_client):
+    # next=evil.com (no leading /) must be ignored to prevent open-redirect.
+    r = gated_client.post(
+        "/login",
+        data={"token": "s3cret-token-xyz", "next": "https://evil.example/"},
+    )
+    assert r.status_code == 302
+    # Should redirect to "/" instead of the external URL.
+    assert r.headers["Location"].endswith("/")
+
+
+def test_gate_cookie_grants_access(gated_client):
+    gated_client.set_cookie("dashboard_auth", "s3cret-token-xyz")
+    r = gated_client.get("/contracts")
+    assert r.status_code == 200
+
+
+def test_logout_clears_cookie(gated_client):
+    gated_client.set_cookie("dashboard_auth", "s3cret-token-xyz")
+    r = gated_client.post("/logout")
+    assert r.status_code == 302
+    set_cookie = r.headers.get("Set-Cookie", "")
+    # An empty/expired dashboard_auth cookie is set.
+    assert "dashboard_auth=" in set_cookie
+
+
+# ── ProxyFix wiring ───────────────────────────────────────────────────────
+
+
+def test_proxy_fix_honors_x_forwarded_proto(tmp_path):
+    """When trust_proxy=True, X-Forwarded-Proto should make request.is_secure True."""
+    captured = {}
+
+    def fake_snap(*, validate=False):
+        captured["scheme"] = None  # filled by route below
+        return _fake_snapshot()
+
+    ctl = BotController(
+        run_once=lambda _t: {"awards_processed": 0},
+        trader_factory=lambda: object(),
+        poll_interval_seconds=0,
+    )
+    app = create_app(
+        controller=ctl,
+        snapshot_builder=fake_snap,
+        dotenv_path=str(tmp_path / ".env"),
+        auth_token="",
+        trust_proxy=True,
+    )
+    app.testing = True
+
+    @app.get("/_test_scheme")
+    def _scheme():
+        from flask import request as _r
+        return {"scheme": _r.scheme, "is_secure": _r.is_secure}
+
+    with app.test_client() as c:
+        r = c.get("/_test_scheme", headers={"X-Forwarded-Proto": "https"})
+        assert r.status_code == 200
+        assert r.get_json() == {"scheme": "https", "is_secure": True}
+
+
+def test_proxy_fix_disabled_ignores_x_forwarded_proto(tmp_path):
+    ctl = BotController(
+        run_once=lambda _t: {"awards_processed": 0},
+        trader_factory=lambda: object(),
+        poll_interval_seconds=0,
+    )
+    app = create_app(
+        controller=ctl,
+        snapshot_builder=_fake_snapshot,
+        dotenv_path=str(tmp_path / ".env"),
+        auth_token="",
+        trust_proxy=False,
+    )
+    app.testing = True
+
+    @app.get("/_test_scheme")
+    def _scheme():
+        from flask import request as _r
+        return {"scheme": _r.scheme, "is_secure": _r.is_secure}
+
+    with app.test_client() as c:
+        r = c.get("/_test_scheme", headers={"X-Forwarded-Proto": "https"})
+        assert r.get_json()["is_secure"] is False  # header was ignored
