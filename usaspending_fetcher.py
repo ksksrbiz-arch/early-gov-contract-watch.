@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 API_BASE = "https://api.usaspending.gov/api/v2"
 API_PAGE_LIMIT = 100
 MAX_RESULTS = 500
+BASE_MODIFICATION_NUMBERS = {"0", ""}
 
 
 def get_last_modified_cutoff():
@@ -75,7 +76,7 @@ def fetch_recent_large_contracts():
                     continue
                 modification_number = str(a.get("Modification Number") or "").strip()
                 # Keep only base awards (modification 0 or blank), skip amendments.
-                if modification_number not in ("0", ""):
+                if modification_number not in BASE_MODIFICATION_NUMBERS:
                     continue
                 new_awards.append(a)
                 seen.add(aid)
