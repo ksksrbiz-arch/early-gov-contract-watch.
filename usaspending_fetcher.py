@@ -73,7 +73,9 @@ def fetch_recent_large_contracts():
                 aid = a.get("Award ID") or str(a.get("id", ""))
                 if aid in seen:
                     continue
-                if str(a.get("Modification Number") or "").strip() not in ("0", ""):
+                modification_number = str(a.get("Modification Number") or "").strip()
+                # Keep only base awards (modification 0 or blank), skip amendments.
+                if modification_number not in ("0", ""):
                     continue
                 new_awards.append(a)
                 seen.add(aid)
@@ -83,13 +85,14 @@ def fetch_recent_large_contracts():
         save_state(state)
         return new_awards
     except requests.exceptions.HTTPError as e:
-        status_code = getattr(getattr(e, "response", None), "status_code", None)
-        response_text = getattr(getattr(e, "response", None), "text", "") or ""
+        response = getattr(e, "response", None)
+        status_code = getattr(response, "status_code", None)
+        response_text = (getattr(response, "text", "") or "")[:500]
         logger.error(
             "API error: %s (status=%s, response=%s)",
             e,
             status_code,
-            response_text[:500],
+            response_text,
         )
         return []
     except Exception as e:
