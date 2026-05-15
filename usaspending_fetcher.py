@@ -18,6 +18,7 @@ API_BASE = "https://api.usaspending.gov/api/v2"
 API_PAGE_LIMIT = 100
 MAX_RESULTS = 500
 BASE_MODIFICATION_NUMBERS = {"0", ""}
+MAX_ERROR_RESPONSE_LENGTH = 500
 
 
 def get_last_modified_cutoff():
@@ -88,7 +89,7 @@ def fetch_recent_large_contracts():
     except requests.exceptions.HTTPError as e:
         response = getattr(e, "response", None)
         status_code = getattr(response, "status_code", None)
-        response_text = (getattr(response, "text", "") or "")[:500]
+        response_text = (getattr(response, "text", "") or "")[:MAX_ERROR_RESPONSE_LENGTH]
         logger.error(
             "API error: %s (status=%s, response=%s)",
             e,
